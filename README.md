@@ -1,6 +1,6 @@
 # Notes API
 
-This repository contains the baseline FastAPI implementation described by the Product Knowledge Base in [`notes-demo-docs`](https://github.com/manumax78/notes-demo-docs).
+This repository contains the baseline FastAPI implementation described by the Product Knowledge Base in [`notes-demo-docs`](https://github.com/manumax/notes-demo-docs).
 
 The API stores notes in memory. A note has an integer `id`, a non-empty `title`, and non-empty `content`. Data is lost when the process stops.
 
