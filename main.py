@@ -1,7 +1,9 @@
 """In-memory FastAPI implementation of the Notes API."""
 
+from typing import Optional
+
 from fastapi import FastAPI, HTTPException, Response, status
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 
 class NoteInput(BaseModel):
@@ -9,6 +11,16 @@ class NoteInput(BaseModel):
 
     title: str = Field(..., min_length=1)
     content: str = Field(..., min_length=1)
+    tags: list[str] = Field(default_factory=list)
+
+    @field_validator("tags")
+    @classmethod
+    def validate_tags(cls, tags: list[str]) -> list[str]:
+        """Reject empty tags and keep only the first occurrence of each value."""
+
+        if any(not tag for tag in tags):
+            raise ValueError("tags must be non-empty strings")
+        return list(dict.fromkeys(tags))
 
 
 class Note(NoteInput):
@@ -34,10 +46,13 @@ def note_or_404(note_id: int) -> Note:
 
 
 @app.get("/notes", response_model=list[Note])
-def list_notes() -> list[Note]:
-    """Return all notes in ascending identifier order."""
+def list_notes(tag: Optional[str] = None) -> list[Note]:
+    """Return notes in ascending identifier order, optionally filtered by one exact tag."""
 
-    return [_notes[note_id] for note_id in sorted(_notes)]
+    notes = [_notes[note_id] for note_id in sorted(_notes)]
+    if tag is None:
+        return notes
+    return [note for note in notes if tag in note.tags]
 
 
 @app.post("/notes", response_model=Note, status_code=status.HTTP_201_CREATED)
@@ -61,7 +76,7 @@ def get_note(note_id: int) -> Note:
 
 @app.put("/notes/{note_id}", response_model=Note)
 def update_note(note_id: int, note_input: NoteInput) -> Note:
-    """Replace the title and content of an existing note."""
+    """Replace the title, content, and tags of an existing note."""
 
     note_or_404(note_id)
     updated_note = Note(id=note_id, **note_input.model_dump())
