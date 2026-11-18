@@ -46,14 +46,28 @@ def note_or_404(note_id: int) -> Note:
     return note
 
 
+def ascii_lower(value: str) -> str:
+    """Lowercase the ASCII letters A-Z and leave every other character as-is."""
+
+    return "".join(chr(ord(char) + 32) if "A" <= char <= "Z" else char for char in value)
+
+
 @app.get("/notes", response_model=list[Note])
-def list_notes(tag: Optional[str] = None) -> list[Note]:
-    """Return pinned notes first, then the rest, with ascending id within each group."""
+def list_notes(tag: Optional[str] = None, q: Optional[str] = None) -> list[Note]:
+    """Return pinned notes first, then the rest, with ascending id within each group.
+
+    ``tag`` keeps notes carrying that exact tag. ``q`` keeps notes whose title
+    contains it, ignoring case for the ASCII letters A-Z; surrounding whitespace
+    is trimmed and an empty ``q`` applies no title filter.
+    """
 
     notes = sorted(_notes.values(), key=lambda note: (not note.pinned, note.id))
-    if tag is None:
-        return notes
-    return [note for note in notes if tag in note.tags]
+    if tag is not None:
+        notes = [note for note in notes if tag in note.tags]
+    title_filter = ascii_lower((q or "").strip())
+    if title_filter:
+        notes = [note for note in notes if title_filter in ascii_lower(note.title)]
+    return notes
 
 
 @app.post("/notes", response_model=Note, status_code=status.HTTP_201_CREATED)

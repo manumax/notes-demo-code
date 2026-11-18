@@ -39,11 +39,23 @@ List only notes that carry an exact tag:
 curl 'http://127.0.0.1:8000/notes?tag=shopping'
 ```
 
-The tag-filtered list uses the same pinned-first ordering. Sending a note without `tags` creates or replaces it with no tags; `PUT /notes/{id}` replaces the note's tags entirely and resets `pinned` to `false` when the field is omitted.
+Search titles with `q`:
+
+```bash
+curl 'http://127.0.0.1:8000/notes?q=milk'
+```
+
+`q` matches any note whose `title` contains it as a literal substring, ignoring case for the ASCII letters `A`–`Z` only: `q=MILK` matches titles containing `milk`, `Milk`, or `MILK`, while `q=cafe` does not match a title containing `Café`. Surrounding whitespace is trimmed from `q`, and an absent, empty, or whitespace-only `q` applies no title filter. Only `title` is searched; `content` and `tags` are never matched. Sending both filters returns only notes that satisfy both:
+
+```bash
+curl 'http://127.0.0.1:8000/notes?q=milk&tag=shopping'
+```
+
+Each filtered list keeps the same ordering: pinned notes first, then ascending `id` within each group. Sending a note without `tags` creates or replaces it with no tags; `PUT /notes/{id}` replaces the note's tags entirely and resets `pinned` to `false` when the field is omitted.
 
 The implemented operations are:
 
-- `GET /notes` — list notes, pinned first and then ascending `id`, optionally filtered by one exact tag;
+- `GET /notes` — list notes, pinned first and then ascending `id`, optionally filtered by one exact tag and searched by title with `q`;
 - `POST /notes` — create a note;
 - `GET /notes/{id}` — retrieve a note;
 - `PUT /notes/{id}` — replace a note;
