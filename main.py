@@ -12,6 +12,7 @@ class NoteInput(BaseModel):
     title: str = Field(..., min_length=1)
     content: str = Field(..., min_length=1)
     tags: list[str] = Field(default_factory=list)
+    pinned: bool = False
 
     @field_validator("tags")
     @classmethod
@@ -47,9 +48,9 @@ def note_or_404(note_id: int) -> Note:
 
 @app.get("/notes", response_model=list[Note])
 def list_notes(tag: Optional[str] = None) -> list[Note]:
-    """Return notes in ascending identifier order, optionally filtered by one exact tag."""
+    """Return pinned notes first, then the rest, with ascending id within each group."""
 
-    notes = [_notes[note_id] for note_id in sorted(_notes)]
+    notes = sorted(_notes.values(), key=lambda note: (not note.pinned, note.id))
     if tag is None:
         return notes
     return [note for note in notes if tag in note.tags]
@@ -76,7 +77,7 @@ def get_note(note_id: int) -> Note:
 
 @app.put("/notes/{note_id}", response_model=Note)
 def update_note(note_id: int, note_input: NoteInput) -> Note:
-    """Replace the title, content, and tags of an existing note."""
+    """Replace the title, content, tags, and pinned flag of an existing note."""
 
     note_or_404(note_id)
     updated_note = Note(id=note_id, **note_input.model_dump())
